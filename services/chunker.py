@@ -34,7 +34,7 @@ def smart_split_large(content: str, max_chunk_len: int = 8000) -> list[str]:
         current_chunk = ""
 
         for chunk in chunks:
-            if len(current_chunk) + len(chunk) > max_chunk_len * 1.5 and current_chunk.strip():
+            if len(current_chunk) + len(chunk) > max_chunk_len and current_chunk.strip():
                 final_chunks.append(current_chunk)
                 current_chunk = chunk
             else:
