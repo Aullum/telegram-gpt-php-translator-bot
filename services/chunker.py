@@ -12,10 +12,14 @@ def smart_split_large(content: str, max_chunk_len: int = 8000) -> list[str]:
     chunks = []
     current_chunk = ""
 
+    def force_split_by_length(text: str) -> list[str]:
+        # Грубое деление по max_chunk_len, не ломает порядок
+        return [text[i:i+max_chunk_len] for i in range(0, len(text), max_chunk_len)]
+
     def split_too_large(section: str) -> list[str]:
         if len(section) <= max_chunk_len:
             return [section]
-        
+        # Сначала пробуем разбить по абзацам (пустым строкам)
         parts = re.split(r'(\n\s*\n|\r\n\r\n)', section)
         sub_chunks = []
         sub_chunk = ""
@@ -27,7 +31,14 @@ def smart_split_large(content: str, max_chunk_len: int = 8000) -> list[str]:
                 sub_chunk += part
         if sub_chunk.strip():
             sub_chunks.append(sub_chunk)
-        return sub_chunks
+        # Если после деления хоть один sub_chunk всё ещё слишком большой — режем по длине
+        really_final = []
+        for chunk in sub_chunks:
+            if len(chunk) > max_chunk_len:
+                really_final.extend(force_split_by_length(chunk))
+            else:
+                really_final.append(chunk)
+        return really_final
 
     for section in sections:
         if not section.strip():
