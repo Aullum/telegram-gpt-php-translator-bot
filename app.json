@@ -1,0 +1,18 @@
+{
+  "name": "Telegram PHP Translator Bot",
+  "description": "A Telegram bot for translating index.php files with GPT, preserving code structure.",
+  "env": {
+    "BOT_TOKEN": {
+      "description": "Telegram Bot Token",
+      "required": true
+    },
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API Key",
+      "required": true
+    },
+    "APP_URL": {
+      "description": "Public URL for webhook (set automatically by Heroku for most deployments)",
+      "required": false
+    }
+  }
+}

@@ -19,38 +19,53 @@ PORT = int(os.getenv("PORT", 5000))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def main():
-    application = ApplicationBuilder().token(TOKEN).build()
+def register_handlers(app):
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("restart", restart_command))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_language))
 
-    # Register bot commands
-    await application.bot.set_my_commands([
+async def run_webhook(app):
+    await app.bot.set_my_commands([
         BotCommand("start", "Start the bot"),
         BotCommand("restart", "Reset the translation session"),
     ])
+    await app.bot.set_webhook(f"{APP_URL}/webhook")
 
-    # Handlers
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("restart", restart_command))
-    application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_language))
-
-    # Set webhook
-    await application.bot.set_webhook(f"{APP_URL}/webhook")
-
-    # Aiohttp webhook app
     web_app = web.Application()
-    webhook = await webhook_handler(application)
+    webhook = await webhook_handler(app)
     web_app.router.add_post("/webhook", webhook)
 
-    await application.initialize()
-    await application.start()
+    await app.initialize()
+    await app.start()
 
     runner = web.AppRunner(web_app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
 
-    logger.info("🚀 Bot is running and listening to webhook")
+    logger.info(f"🚀 Webhook active at {APP_URL}/webhook")
+
+async def run_polling(app):
+    await app.bot.set_my_commands([
+        BotCommand("start", "Start the bot"),
+        BotCommand("restart", "Reset the translation session"),
+    ])
+    logger.info("🤖 No APP_URL set, starting in polling mode...")
+    await app.run_polling()
+
+def main():
+    if not TOKEN:
+        logger.error("❌ BOT_TOKEN is not set. Please set the BOT_TOKEN environment variable.")
+        return
+
+    app = ApplicationBuilder().token(TOKEN).build()
+    register_handlers(app)
+
+    if APP_URL:
+        asyncio.run(run_webhook(app))
+    else:
+        app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
