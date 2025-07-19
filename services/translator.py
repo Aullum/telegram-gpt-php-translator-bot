@@ -70,7 +70,7 @@ async def translate_large_chunk(chunk: str, lang: str, chunk_num: int, total_chu
             prompt = build_large_chunk_prompt(chunk, lang, chunk_num, total_chunks)
 
             response = openai.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1 if attempt == 0 else 0.3,
                 max_tokens=min(12000, int(len(chunk) * 1.5)),
