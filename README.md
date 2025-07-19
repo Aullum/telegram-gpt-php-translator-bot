@@ -6,12 +6,12 @@ This is a Telegram bot that translates human-readable content in `index.php` fil
 
 ## 🚀 Deploy in one click
 
-<a href="https://heroku.com/deploy?template=https://github.com/Aullum/telegram-gpt-php-translator-bot" style="outline:none;">
-  <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" style="height: 35px;"/>
+<a href="https://heroku.com/deploy?template=https://github.com/Aullum/telegram-gpt-php-translator-bot">
+  <img src="https://img.shields.io/badge/Heroku-430098?logo=heroku&logoColor=white&style=for-the-badge" alt="Heroku" style="height: 35px;"/>
 </a>
 &nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://render.com/deploy?repo=https://github.com/Aullum/telegram-gpt-php-translator-bot" style="outline:none;">
-  <img src="https://img.shields.io/badge/Deploy_to_Render-000000?logo=render&logoColor=white&style=for-the-badge" alt="Deploy to Render" style="height: 35px;"/>
+<a href="https://render.com/deploy?repo=https://github.com/Aullum/telegram-gpt-php-translator-bot">
+  <img src="https://img.shields.io/badge/Render-000000?logo=render&logoColor=white&style=for-the-badge" alt="Render" style="height: 35px;"/>
 </a>
 
 ---
