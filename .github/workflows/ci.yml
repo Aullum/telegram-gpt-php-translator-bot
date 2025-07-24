@@ -31,7 +31,7 @@ jobs:
         run: poetry install --with dev
 
       - name: Lint only (ruff)
-        run: poetry run ruff .
+        run: poetry run ruff check .
 
       - name: Format check (black)
         run: poetry run black --check .
