@@ -1,31 +1,36 @@
-[project]
-name = "telegram-php-translator"
-version = "0.1.0"
-description = ""
-authors = [
-    {name = "Aullum",email = "roman.zidinov@gmail.com"}
-]
-license = {text = "MIT"}
-readme = "README.md"
-requires-python = ">=3.12,<3.13"
-dependencies = [
-    "aiogram (>=3.21.0,<4.0.0)",
-    "beautifulsoup4 (>=4.13.4,<5.0.0)",
-    "lxml (>=6.0.0,<7.0.0)",
-    "openai (>=1.97.1,<2.0.0)",
-    "aiofiles (>=24.1.0,<25.0.0)",
-    "python-dotenv (>=1.1.1,<2.0.0)"
-]
-
-
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-ruff = "^0.12.4"
-pytest = "^8.4.1"
-pytest-asyncio = "^1.1.0"
-pre-commit = "^4.2.0"
+[project]
+name            = "telegram-gpt-php-translator-bot"
+version         = "0.1.0"
+description     = "AI-powered translation of PHP index files via Telegram"
+authors         = [{ name = "Aullum", email = "roman.zidinov@gmail.com" }]
+license         = { text = "MIT" }
+readme          = "README.md"
+requires-python = ">=3.12,<3.13"
 
+dependencies = [
+  "aiogram>=3.21,<4.0",
+  "beautifulsoup4>=4.13,<5.0",
+  "lxml>=5,<6",
+  "openai>=1.97,<2.0",
+  "aiofiles>=24,<25",
+  "python-dotenv>=1.1,<2.0"
+]
+
+[tool.poetry.group.dev.dependencies]
+black          = "^25.1.0"
+ruff           = "^0.12.4"
+pytest         = "^8.4.1"
+pytest-asyncio = "^1.1.0"
+pre-commit     = "^4.2.0"
+
+[tool.poetry]
+packages = [
+  { include = "telegram_gpt_php_translator_bot", from = "src" }
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"

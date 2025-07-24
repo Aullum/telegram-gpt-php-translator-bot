@@ -22,8 +22,8 @@ jobs:
         with:
           poetry-version: "2.1.3"
 
-      - name: Install deps
-        run: poetry install --no-interaction --no-root
+      - name: Install deps (project + dev)
+        run: poetry install --with dev
 
       - name: Run black
         run: poetry run black --check .
