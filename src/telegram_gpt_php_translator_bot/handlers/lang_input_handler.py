@@ -1,3 +1,5 @@
+import tempfile
+import os
 from telegram_gpt_php_translator_bot.services.parser_service import extract_visible_text
 from telegram_gpt_php_translator_bot.services.openai_service import translate_chunks
 import aiofiles
@@ -27,8 +29,12 @@ async def handle_lang_input(msg: types.Message, state: FSMContext):
     for marker, translated in zip(marker_map.keys(), translations):
         replaced_html = replaced_html.replace(marker, translated)
 
-    out_path = f"/tmp/translated_{uuid.uuid4().hex}.php"
+    tmp_dir = tempfile.gettempdir()
+    out_path = os.path.join(tmp_dir, f"translated_{uuid.uuid4().hex}.php")
+
     async with aiofiles.open(out_path, "w", encoding="utf-8") as f:
         await f.write(replaced_html)
 
-    await msg.answer_document(types.FSInputFile(out_path))
+    await msg.answer_document(
+        types.FSInputFile(out_path), caption="✅ Here is your translated index.php"
+    )
