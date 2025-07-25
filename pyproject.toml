@@ -17,7 +17,8 @@ dependencies = [
   "lxml>=5,<6",
   "openai>=1.97,<2.0",
   "aiofiles>=24,<25",
-  "python-dotenv>=1.1,<2.0"
+  "python-dotenv>=1.1,<2.0",
+  "tiktoken (>=0.9.0,<0.10.0)"
 ]
 
 [tool.poetry.group.dev.dependencies]
