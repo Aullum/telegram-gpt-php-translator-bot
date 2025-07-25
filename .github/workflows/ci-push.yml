@@ -10,6 +10,10 @@ jobs:
     name: Lint & Test (Subset)
     runs-on: ubuntu-latest
 
+    env:
+      BOT_TOKEN: "dummy"
+      OPENAI_API_KEY: "dummy"
+
     steps:
       - uses: actions/checkout@v4
 
