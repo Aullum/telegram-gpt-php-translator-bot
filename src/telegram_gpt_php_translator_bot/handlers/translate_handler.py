@@ -1,3 +1,5 @@
+import os
+import tempfile
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -14,8 +16,11 @@ class TranslateStates(StatesGroup):
     lambda msg: msg.document and msg.document.file_name.endswith("index.php")
 )
 async def receive_file(message: types.Message, state: FSMContext):
-    file_path = f"/tmp/{message.document.file_name}"
-    await message.document.download(destination=file_path)
+    tmp_dir = tempfile.gettempdir()
+    file_path = os.path.join(tmp_dir, message.document.file_name)
+
+    file = await message.bot.get_file(message.document.file_id)
+    await message.bot.download_file(file.file_path, destination=file_path)
 
     await state.set_state(TranslateStates.waiting_for_language)
     await state.update_data(file_path=file_path)
