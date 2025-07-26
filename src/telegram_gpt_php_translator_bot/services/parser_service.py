@@ -1,29 +1,32 @@
 from bs4 import BeautifulSoup, NavigableString, Comment
-import uuid
+from collections import OrderedDict
 
 
-def extract_visible_text(html: str) -> tuple[str, list[str], dict[str, str]]:
+def is_visible(element: NavigableString) -> bool:
+    parent = element.parent
+    if parent.name in ["style", "script", "head", "meta", "[document]"]:
+        return False
+    if isinstance(element, Comment):
+        return False
+    return True
+
+
+def extract_text_elements_from_html(html: str) -> tuple[str, dict[str, str]]:
     soup = BeautifulSoup(html, "lxml")
-    text_chunks = []
-    marker_map = {}
-
-    def is_visible(tag):
-        return tag.parent.name not in [
-            "style",
-            "script",
-            "head",
-            "title",
-            "meta",
-            "[document]",
-        ] and not isinstance(tag, Comment)
+    element_map = OrderedDict()
+    counter = 0
 
     for element in soup.find_all(string=True):
-        if isinstance(element, NavigableString) and is_visible(element):
-            stripped = element.strip()
-            if stripped:
-                marker = f"__chunk_{uuid.uuid4().hex[:8]}__"
-                marker_map[marker] = stripped
-                text_chunks.append(stripped)
-                element.replace_with(marker)
+        if not is_visible(element):
+            continue
 
-    return str(soup), text_chunks, marker_map
+        text = element.strip()
+        if not text:
+            continue
+
+        marker = f"__chunk_{counter:04}__"
+        element_map[marker] = text
+        element.replace_with(marker)
+        counter += 1
+
+    return str(soup), element_map
