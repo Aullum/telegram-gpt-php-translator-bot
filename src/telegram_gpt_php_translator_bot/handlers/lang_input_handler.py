@@ -1,7 +1,9 @@
 import tempfile
 import os
-from telegram_gpt_php_translator_bot.services.parser_service import extract_visible_text
-from telegram_gpt_php_translator_bot.services.openai_service import translate_chunks
+from telegram_gpt_php_translator_bot.services.parser_service import (
+    extract_text_elements_from_html,
+)
+from telegram_gpt_php_translator_bot.services.openai_service import translate_elements
 import aiofiles
 import uuid
 from aiogram import types
@@ -22,9 +24,9 @@ async def handle_lang_input(msg: types.Message, state: FSMContext):
     async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
         html_raw = await f.read()
 
-    replaced_html, chunks, marker_map = extract_visible_text(html_raw)
+    replaced_html, chunks, marker_map = extract_text_elements_from_html(html_raw)
 
-    translations = await translate_chunks(chunks, lang)
+    translations = await translate_elements(chunks, lang)
 
     for marker, translated in zip(marker_map.keys(), translations):
         replaced_html = replaced_html.replace(marker, translated)
