@@ -30,3 +30,12 @@ def extract_text_elements_from_html(html: str) -> tuple[str, dict[str, str]]:
         counter += 1
 
     return str(soup), element_map
+
+
+def apply_translations_to_html(html: str, translations: dict[str, str]) -> str:
+    replaced_html = html
+
+    for marker, translated in translations.items():
+        replaced_html = replaced_html.replace(marker, translated)
+
+    return replaced_html

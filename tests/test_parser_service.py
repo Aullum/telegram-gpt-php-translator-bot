@@ -1,6 +1,9 @@
 from telegram_gpt_php_translator_bot.services.parser_service import (
     extract_text_elements_from_html,
 )
+from telegram_gpt_php_translator_bot.services.parser_service import (
+    apply_translations_to_html,
+)
 
 
 def test_extract_text_elements_basic():
@@ -17,3 +20,17 @@ def test_extract_text_elements_basic():
     assert "Test" in texts
     assert "Hello" in texts
     assert "World" in texts
+
+
+def test_apply_translations_to_html_success():
+    html = "<div>__chunk_0001__</div><p>__chunk_0002__</p>"
+    translations = {
+        "__chunk_0001__": "Bonjour",
+        "__chunk_0002__": "Comment ça va?",
+    }
+
+    result = apply_translations_to_html(html, translations)
+
+    assert "Bonjour" in result
+    assert "Comment ça va?" in result
+    assert "__chunk_" not in result

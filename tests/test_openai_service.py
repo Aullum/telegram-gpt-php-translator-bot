@@ -30,3 +30,16 @@ async def test_translate_elements_json_mock(mocker):
     assert result["__chunk_0001__"] == "Добро пожаловать"
     assert result["__chunk_0002__"] == "Нажмите здесь"
     assert result["__chunk_0003__"] == "Изучить инструменты"
+
+
+@pytest.mark.asyncio
+async def test_translate_elements_invalid_json(mocker):
+    fake_map = {"__chunk_0001__": "Hello"}
+
+    mocker.patch(
+        "telegram_gpt_php_translator_bot.services.openai_service.translate_chunk",
+        return_value="{not valid json",
+    )
+
+    with pytest.raises(RuntimeError, match="Invalid JSON"):
+        await translate_elements(fake_map, "FR")

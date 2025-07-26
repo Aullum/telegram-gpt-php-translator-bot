@@ -46,7 +46,6 @@ Respond with the translated JSON only:
         top_p=0.9,
         frequency_penalty=0.0,
         presence_penalty=0.0,
-        response_format="json",
     )
     return resp.choices[0].message.content.strip()
 
