@@ -1,11 +1,19 @@
-from telegram_gpt_php_translator_bot.services.parser_service import extract_visible_text
+from telegram_gpt_php_translator_bot.services.parser_service import (
+    extract_text_elements_from_html,
+)
 
 
-def test_extract_visible_text_basic():
+def test_extract_text_elements_basic():
     html = "<html><head><title>Test</title></head><body><h1>Hello</h1><p>World</p></body></html>"
-    replaced_html, chunks, marker_map = extract_visible_text(html)
+    replaced_html, marker_map = extract_text_elements_from_html(html)
 
-    assert len(chunks) == 2
-    assert all("Hello" in v or "World" in v for v in marker_map.values())
+    assert isinstance(marker_map, dict)
+    assert len(marker_map) == 3
+
     for marker in marker_map:
         assert marker in replaced_html
+
+    texts = list(marker_map.values())
+    assert "Test" in texts
+    assert "Hello" in texts
+    assert "World" in texts
