@@ -1,84 +1,84 @@
+from collections import OrderedDict
+import tiktoken
 import json
 from openai import AsyncOpenAI
-import tiktoken
 from telegram_gpt_php_translator_bot.config import settings
 
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 MODEL = "gpt-4o"
-MAX_TOKS = 8180
-
+MAX_TOKENS = 3500
 _enc = tiktoken.encoding_for_model(MODEL)
 
 
-async def translate_chunk(json_input: dict[str, str], lang: str) -> str:
-    prompt = f"""
-You are a professional translator and localization expert.
+async def translate_chunk(json_input: dict[str, str], lang: str) -> dict[str, str]:
+    json_str = json.dumps(json_input, ensure_ascii=False, indent=2)
 
-Translate ONLY the values of the following JSON dictionary into {lang}.
-DO NOT modify the keys. DO NOT change the JSON structure or formatting.
+    system_msg = {
+        "role": "system",
+        "content": (
+            "You are an elite translator & localization specialist.\n"
+            "Task: translate *only* the JSON values into {lang}.\n"
+            "Return **valid JSON only**, same keys – no extra fields.\n\n"
+            "### Localization rules (must-follow):\n"
+            "1. Replace demonyms/adjectives of nationality with the target one "
+            "(e.g. 'Hungarian seller' → 'Romanian seller').\n"
+            "2. Transliterate or localize personal names to the target language rules.\n"
+            "3. If a company/product has an established local name, use it; "
+            "otherwise keep the brand in Latin script and localize legal suffixes (Inc., LLC, Kft. → SRL etc.).\n"
+            "4. Localize currencies, phone formats, and dates.\n"
+            "5. Preserve tone & intent, no explanations.\n"
+            "…\n"
+            "6. **Use exactly the same spelling for every personal name "
+            "each time it appears. Do NOT invent alternatives.**\n"
+        ),
+    }
 
-Return the result as valid JSON using the same key:value structure.
+    user_msg = {"role": "user", "content": json_str}
 
-✅ Translation & Localization Guidelines:
-- Adapt names of people, places, companies, and products to the target culture.
-- Localize phone numbers, currencies, date/time formats.
-- Maintain tone, emotion, and intent of each message.
-- Translate slogans and marketing phrases to sound natural in the target language.
-
-🚫 Do NOT:
-- Modify or translate the keys
-- Add comments or explanations
-- Change the structure or format of the JSON
-- Wrap the result in Markdown or code blocks
-
-Here is the JSON input:
-{json_input}
-
-Respond with the translated JSON only:
-"""
-
-    messages = [{"role": "user", "content": prompt}]
     resp = await client.chat.completions.create(
         model=MODEL,
-        messages=messages,
-        temperature=0.3,
-        top_p=0.9,
-        frequency_penalty=0.0,
-        presence_penalty=0.0,
+        messages=[system_msg, user_msg],
+        response_format={"type": "json_object"},
+        temperature=0.1,
+        top_p=1.0,
     )
-    return resp.choices[0].message.content.strip()
+    return json.loads(resp.choices[0].message.content)
 
 
 async def translate_elements(element_map: dict[str, str], lang: str) -> dict[str, str]:
-    batches = []
-    current_batch = {}
+    chunks = []
+    current_chunk = OrderedDict()
     current_tokens = 0
 
-    for marker, text in element_map.items():
-        tokens = len(_enc.encode(text))
-        if current_tokens + tokens > MAX_TOKS - 500 and current_batch:
-            batches.append(current_batch)
-            current_batch = {}
+    for key, value in element_map.items():
+        tokens = len(_enc.encode(value))
+        if current_tokens + tokens > MAX_TOKENS and current_chunk:
+            chunks.append(current_chunk)
+            current_chunk = OrderedDict()
             current_tokens = 0
 
-        current_batch[marker] = text
+        current_chunk[key] = value
         current_tokens += tokens
 
-    if current_batch:
-        batches.append(current_batch)
+    if current_chunk:
+        chunks.append(current_chunk)
 
-    translated_map = {}
+    translated = OrderedDict()
+    for i, chunk in enumerate(chunks, start=1):
+        result = await translate_chunk(chunk, lang)
+        translated.update(result)
 
-    for batch in batches:
-        json_input = json.dumps(batch, ensure_ascii=False, indent=2)
-        translated_raw = await translate_chunk(json_input, lang)
-
+    missing = set(element_map) - set(translated)
+    attempt = 1
+    while missing:
+        retry_chunk = OrderedDict((k, element_map[k]) for k in missing)
         try:
-            translated_batch = json.loads(translated_raw)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid JSON returned from OpenAI: {e}")
+            retry_result = await translate_chunk(retry_chunk, lang)
+            translated.update(retry_result)
+        except Exception as e:
+            raise RuntimeError(f"Retry failed: {e}")
+        missing = set(element_map) - set(translated)
+        attempt += 1
 
-        translated_map.update(translated_batch)
-
-    return translated_map
+    return translated
