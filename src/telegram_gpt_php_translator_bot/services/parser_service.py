@@ -20,7 +20,7 @@ def extract_text_elements_from_html(html: str) -> tuple[str, dict[str, str]]:
         if not is_visible(element):
             continue
 
-        text = element.strip()
+        text = " ".join(element.split())
         if not text:
             continue
 
@@ -29,7 +29,7 @@ def extract_text_elements_from_html(html: str) -> tuple[str, dict[str, str]]:
         element.replace_with(marker)
         counter += 1
 
-    return str(soup), element_map
+    return soup.prettify(formatter="html"), element_map
 
 
 def apply_translations_to_html(html: str, translations: dict[str, str]) -> str:
