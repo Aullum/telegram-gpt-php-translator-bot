@@ -12,7 +12,7 @@ import aiofiles
 from aiogram import types
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from .translate_handler import TranslateStates
+from telegram_gpt_php_translator_bot.states import TranslateStates
 
 lang_input_router = Router()
 
