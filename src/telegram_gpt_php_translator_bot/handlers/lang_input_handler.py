@@ -24,8 +24,6 @@ async def handle_lang_input(msg: types.Message, state: FSMContext):
     file_path: str = data["file_path"]
     await state.clear()
 
-    out_path = None
-
     try:
         async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
             html_raw = await f.read()
@@ -34,18 +32,19 @@ async def handle_lang_input(msg: types.Message, state: FSMContext):
         translations = await translate_elements(marker_map, lang)
         translated_html = apply_translations_to_html(html_with_markers, translations)
 
-        tmp_dir = tempfile.gettempdir()
-        out_path = os.path.join(tmp_dir, f"index_{lang}.php")
-
-        async with aiofiles.open(out_path, "w", encoding="utf-8") as f:
+        tmp_out = os.path.join(tempfile.gettempdir(), f"index_{lang}.php")
+        async with aiofiles.open(tmp_out, "w", encoding="utf-8") as f:
             await f.write(translated_html)
 
         await msg.answer_document(
-            types.FSInputFile(out_path), caption="✅ Here is your translated index.php"
+            types.FSInputFile(tmp_out), caption=f"✅ Translated to {lang}"
         )
 
+    except Exception as e:
+        await msg.answer(f"❌ Translation failed: {e}")
+
     finally:
-        for path in [file_path, out_path]:
+        for path in [file_path, tmp_out]:
             if path and os.path.exists(path):
                 try:
                     os.remove(path)
