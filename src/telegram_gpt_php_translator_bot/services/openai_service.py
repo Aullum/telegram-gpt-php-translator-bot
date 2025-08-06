@@ -16,22 +16,22 @@ async def translate_chunk(json_input: dict[str, str], lang: str) -> dict[str, st
 
     system_msg = {
         "role": "system",
-        "content": (
-            "You are an elite translator & localization specialist.\n"
-            "Task: translate *only* the JSON values into {lang}.\n"
-            "Return **valid JSON only**, same keys – no extra fields.\n\n"
-            "### Localization rules (must-follow):\n"
-            "1. Replace demonyms/adjectives of nationality with the target one "
-            "(e.g. 'Hungarian seller' → 'Romanian seller').\n"
-            "2. Transliterate or localize personal names to the target language rules.\n"
-            "3. If a company/product has an established local name, use it; "
-            "otherwise keep the brand in Latin script and localize legal suffixes (Inc., LLC, Kft. → SRL etc.).\n"
-            "4. Localize currencies, phone formats, and dates.\n"
-            "5. Preserve tone & intent, no explanations.\n"
-            "…\n"
-            "6. **Use exactly the same spelling for every personal name "
-            "each time it appears. Do NOT invent alternatives.**\n"
-        ),
+        "content": f"""
+You are an elite translator & localization specialist.
+Task: translate *only* the JSON values into {lang}.
+Return **valid JSON only**, same keys – no extra fields.
+
+### Localization rules (must-follow):
+1. Replace demonyms/adjectives of nationality with the target one
+   (e.g. 'Hungarian seller' → 'Romanian seller').
+2. Transliterate or localize personal names to the target language rules.
+3. If a company/product has an established local name, use it;
+   otherwise keep the brand in Latin script and localize legal suffixes (Inc., LLC, Kft. → SRL etc.).
+4. Localize currencies, phone formats, and dates.
+5. Preserve tone & intent, no explanations.
+6. Use exactly the same spelling for every personal name
+   each time it appears. Do NOT invent alternatives.
+""",
     }
 
     user_msg = {"role": "user", "content": json_str}
