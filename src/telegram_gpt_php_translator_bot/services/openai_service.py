@@ -16,21 +16,35 @@ async def translate_chunk(json_input: dict[str, str], lang: str) -> dict[str, st
 
     system_msg = {
         "role": "system",
-        "content": f"""
-You are an elite translator & localization specialist.
-Task: translate *only* the JSON values into {lang}.
-Return **valid JSON only**, same keys – no extra fields.
+        "content": "You are a professional translator. Follow user instructions exactly.",
+    }
 
-### Localization rules (must-follow):
-1. Replace demonyms/adjectives of nationality with the target one
-   (e.g. 'Hungarian seller' → 'Romanian seller').
-2. Transliterate or localize personal names to the target language rules.
-3. If a company/product has an established local name, use it;
-   otherwise keep the brand in Latin script and localize legal suffixes (Inc., LLC, Kft. → SRL etc.).
-4. Localize currencies, phone formats, and dates.
-5. Preserve tone & intent, no explanations.
-6. Use exactly the same spelling for every personal name
-   each time it appears. Do NOT invent alternatives.
+    user_guide = {
+        "role": "user",
+        "content": f"""
+You are a professional translator and localization expert. Translate ONLY the JSON values into {lang}.
+
+## Personal Name Policy
+- Replace BOTH given names **and** family names with common {lang} full names.
+- Do NOT transliterate. Do NOT keep any part of the original spelling.
+- Each character in this chunk must get a UNIQUE full name.
+- If the same person appears twice **in this chunk**, reuse the exact same localized name.
+
+Examples (Hungarian → German):
+"Hegedűs Anna"          → "Anna Müller"
+"Lopes-Szabó Zsuzsa"    → "Susanne Berger"
+"Szabó György"          → "Jürgen Schneider"
+
+## Other localisation rules
+- Adapt places, companies, products, job titles
+- Convert currencies, dates, phone numbers
+- Preserve tone and marketing intent
+
+## Never do
+- Modify keys or JSON structure
+- Add comments, explanations, markdown, or code blocks
+
+Return valid JSON only.
 """,
     }
 
@@ -38,10 +52,10 @@ Return **valid JSON only**, same keys – no extra fields.
 
     resp = await client.chat.completions.create(
         model=MODEL,
-        messages=[system_msg, user_msg],
+        messages=[system_msg, user_guide, user_msg],
         response_format={"type": "json_object"},
-        temperature=0.1,
-        top_p=1.0,
+        temperature=0.3,
+        max_tokens=4000,
     )
     return json.loads(resp.choices[0].message.content)
 
