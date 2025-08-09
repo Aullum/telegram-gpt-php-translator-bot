@@ -2,14 +2,9 @@ import os
 import tempfile
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from telegram_gpt_php_translator_bot.states import TranslateStates
 
 translate_router = Router()
-
-
-class TranslateStates(StatesGroup):
-    waiting_for_language = State()
-    file_path = State()
 
 
 @translate_router.message(

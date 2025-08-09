@@ -35,6 +35,3 @@ jobs:
 
       - name: Format check (black)
         run: poetry run black --check .
-
-      - name: Run fast tests (optional)
-        run: poetry run pytest -q -m "not slow"

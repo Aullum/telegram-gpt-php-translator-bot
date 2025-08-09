@@ -1,84 +1,108 @@
+from collections import OrderedDict
 import json
-from openai import AsyncOpenAI
 import tiktoken
+from typing import Optional
+from openai import AsyncOpenAI
 from telegram_gpt_php_translator_bot.config import settings
+
+from telegram_gpt_php_translator_bot.services.progress_service import ProgressUI
 
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-MODEL = "gpt-4o"
-MAX_TOKS = 8180
+MODEL = "gpt-4.1"
+MAX_TOKENS = 3500
 
-_enc = tiktoken.encoding_for_model(MODEL)
+try:
+    _enc = tiktoken.encoding_for_model(MODEL)
+except Exception:
+    _enc = tiktoken.get_encoding("cl100k_base")
 
 
-async def translate_chunk(json_input: dict[str, str], lang: str) -> str:
-    prompt = f"""
-You are a professional translator and localization expert.
+async def translate_chunk(json_input: dict[str, str], lang: str) -> dict[str, str]:
+    """Translate only JSON values while preserving keys and structure."""
+    json_str = json.dumps(json_input, ensure_ascii=False, indent=2)
 
-Translate ONLY the values of the following JSON dictionary into {lang}.
-DO NOT modify the keys. DO NOT change the JSON structure or formatting.
+    system_prompt = {
+        "role": "system",
+        "content": (
+            "You are a professional website localizer.\n"
+            "Translate ONLY the values of this JSON object into the specified language.\n"
+            "Keep the JSON structure and all keys unchanged.\n"
+            "Return valid JSON. No markdown, no comments, no explanations."
+        ),
+    }
 
-Return the result as valid JSON using the same key:value structure.
+    user_prompt = {
+        "role": "user",
+        "content": f"""
+Translate this JSON object into {lang}. Follow these rules:
 
-✅ Translation & Localization Guidelines:
-- Adapt names of people, places, companies, and products to the target culture.
-- Localize phone numbers, currencies, date/time formats.
-- Maintain tone, emotion, and intent of each message.
-- Translate slogans and marketing phrases to sound natural in the target language.
+1. Replace personal full names with culturally appropriate full names in {lang}.
+2. Each character must receive a UNIQUE full name if present in this chunk.
+3. DO NOT keep original spelling. DO NOT transliterate.
+4. Reuse the same localized name if the same person appears more than once in this chunk.
+5. Adapt places, companies, products, job titles, dates, and currencies.
+6. Preserve tone, intent, and marketing style.
 
-🚫 Do NOT:
-- Modify or translate the keys
-- Add comments or explanations
-- Change the structure or format of the JSON
-- Wrap the result in Markdown or code blocks
+Only translate the values. Do not change the structure or keys.
 
-Here is the JSON input:
-{json_input}
+JSON to translate:
+{json_str}
+""",
+    }
 
-Respond with the translated JSON only:
-"""
-
-    messages = [{"role": "user", "content": prompt}]
     resp = await client.chat.completions.create(
         model=MODEL,
-        messages=messages,
+        messages=[system_prompt, user_prompt],
+        response_format={"type": "json_object"},
         temperature=0.3,
-        top_p=0.9,
-        frequency_penalty=0.0,
-        presence_penalty=0.0,
+        max_tokens=4000,
     )
-    return resp.choices[0].message.content.strip()
+
+    return json.loads(resp.choices[0].message.content)
 
 
-async def translate_elements(element_map: dict[str, str], lang: str) -> dict[str, str]:
-    batches = []
-    current_batch = {}
+async def translate_elements(
+    element_map: dict[str, str],
+    lang: str,
+    progress: Optional["ProgressUI"] = None,
+) -> dict[str, str]:
+
+    chunks = []
+    current_chunk = OrderedDict()
     current_tokens = 0
 
-    for marker, text in element_map.items():
-        tokens = len(_enc.encode(text))
-        if current_tokens + tokens > MAX_TOKS - 500 and current_batch:
-            batches.append(current_batch)
-            current_batch = {}
+    for key, value in element_map.items():
+        tokens = len(_enc.encode(value))
+        if current_tokens + tokens > MAX_TOKENS and current_chunk:
+            chunks.append(current_chunk)
+            current_chunk = OrderedDict()
             current_tokens = 0
 
-        current_batch[marker] = text
+        current_chunk[key] = value
         current_tokens += tokens
 
-    if current_batch:
-        batches.append(current_batch)
+    if current_chunk:
+        chunks.append(current_chunk)
 
-    translated_map = {}
+    translated = OrderedDict()
+    total = len(chunks)
 
-    for batch in batches:
-        json_input = json.dumps(batch, ensure_ascii=False, indent=2)
-        translated_raw = await translate_chunk(json_input, lang)
+    if total == 0:
+        if progress:
+            await progress.update(stage="Translating 0/0", percent=80)
+        return translated
 
-        try:
-            translated_batch = json.loads(translated_raw)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid JSON returned from OpenAI: {e}")
+    if progress:
+        await progress.update(stage=f"Translating 0/{total}", percent=20)
 
-        translated_map.update(translated_batch)
+    start, end = 20, 80
+    for i, chunk in enumerate(chunks, start=1):
+        result = await translate_chunk(chunk, lang)
+        translated.update(result)
 
-    return translated_map
+        if progress:
+            pct = start + int((end - start) * (i / total))
+            await progress.update(stage=f"Translating {i}/{total}", percent=pct)
+
+    return translated
