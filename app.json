@@ -1,0 +1,19 @@
+{
+  "name": "Telegram GPT PHP Translator Bot",
+  "description": "Translate index.php landing pages via Telegram using OpenAI, preserving structure. Aiogram + Poetry.",
+  "keywords": ["telegram", "aiogram", "openai", "translation", "poetry"],
+  "repository": "https://github.com/<your-username>/telegram-gpt-php-translator-bot",
+  "stack": "heroku-24",
+  "buildpacks": [
+    { "url": "heroku/python" }
+  ],
+  "env": {
+    "BOT_TOKEN": { "description": "Telegram bot token from @BotFather", "required": true },
+    "OPENAI_API_KEY": { "description": "OpenAI API key", "required": true },
+    "WEBHOOK_URL": { "description": "Optional public HTTPS webhook URL (leave empty for polling)", "required": false },
+    "WEBHOOK_SECRET": { "description": "Optional secret for webhook verification", "required": false }
+  },
+  "formation": {
+    "worker": { "quantity": 1 }
+  }
+}
