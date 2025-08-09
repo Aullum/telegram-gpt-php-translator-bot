@@ -1,0 +1,20 @@
+services:
+  - type: worker
+    name: telegram-gpt-php-translator-bot
+    runtime: python
+    plan: starter
+    buildCommand: |
+      pip install --upgrade pip
+      pip install poetry
+      poetry install --no-interaction --no-ansi --without dev
+    startCommand: poetry run python -m telegram_gpt_php_translator_bot.main
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
