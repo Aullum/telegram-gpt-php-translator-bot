@@ -1,8 +1,11 @@
 from collections import OrderedDict
 import json
 import tiktoken
+from typing import Optional
 from openai import AsyncOpenAI
 from telegram_gpt_php_translator_bot.config import settings
+
+from telegram_gpt_php_translator_bot.services.progress_service import ProgressUI
 
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -59,8 +62,12 @@ JSON to translate:
     return json.loads(resp.choices[0].message.content)
 
 
-async def translate_elements(element_map: dict[str, str], lang: str) -> dict[str, str]:
-    """Chunk long inputs by value token count and merge translations."""
+async def translate_elements(
+    element_map: dict[str, str],
+    lang: str,
+    progress: Optional["ProgressUI"] = None,
+) -> dict[str, str]:
+
     chunks = []
     current_chunk = OrderedDict()
     current_tokens = 0
@@ -79,8 +86,23 @@ async def translate_elements(element_map: dict[str, str], lang: str) -> dict[str
         chunks.append(current_chunk)
 
     translated = OrderedDict()
-    for chunk in chunks:
+    total = len(chunks)
+
+    if total == 0:
+        if progress:
+            await progress.update(stage="Translating 0/0", percent=80)
+        return translated
+
+    if progress:
+        await progress.update(stage=f"Translating 0/{total}", percent=20)
+
+    start, end = 20, 80
+    for i, chunk in enumerate(chunks, start=1):
         result = await translate_chunk(chunk, lang)
         translated.update(result)
+
+        if progress:
+            pct = start + int((end - start) * (i / total))
+            await progress.update(stage=f"Translating {i}/{total}", percent=pct)
 
     return translated
