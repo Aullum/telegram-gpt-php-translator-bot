@@ -40,8 +40,15 @@ async def handle_lang_input(msg: types.Message, state: FSMContext):
             types.FSInputFile(tmp_out), caption=f"✅ Translated to {lang}"
         )
 
+        await msg.answer(
+            "Ready for the next translation. Send me an index.php file to start translation."
+        )
+
     except Exception as e:
         await msg.answer(f"❌ Translation failed: {e}")
+        await msg.answer(
+            "Ready for the next translation. Send me an index.php file to start translation."
+        )
 
     finally:
         for path in [file_path, tmp_out]:
