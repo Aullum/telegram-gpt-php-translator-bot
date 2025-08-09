@@ -1,66 +1,66 @@
 from collections import OrderedDict
-import tiktoken
 import json
+import tiktoken
 from openai import AsyncOpenAI
 from telegram_gpt_php_translator_bot.config import settings
 
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-MODEL = "gpt-4o"
+MODEL = "gpt-4.1"
 MAX_TOKENS = 3500
-_enc = tiktoken.encoding_for_model(MODEL)
+
+try:
+    _enc = tiktoken.encoding_for_model(MODEL)
+except Exception:
+    _enc = tiktoken.get_encoding("cl100k_base")
 
 
 async def translate_chunk(json_input: dict[str, str], lang: str) -> dict[str, str]:
+    """Translate only JSON values while preserving keys and structure."""
     json_str = json.dumps(json_input, ensure_ascii=False, indent=2)
 
-    system_msg = {
+    system_prompt = {
         "role": "system",
-        "content": "You are a professional translator. Follow user instructions exactly.",
+        "content": (
+            "You are a professional website localizer.\n"
+            "Translate ONLY the values of this JSON object into the specified language.\n"
+            "Keep the JSON structure and all keys unchanged.\n"
+            "Return valid JSON. No markdown, no comments, no explanations."
+        ),
     }
 
-    user_guide = {
+    user_prompt = {
         "role": "user",
         "content": f"""
-You are a professional translator and localization expert. Translate ONLY the JSON values into {lang}.
+Translate this JSON object into {lang}. Follow these rules:
 
-## Personal Name Policy
-- Replace BOTH given names **and** family names with common {lang} full names.
-- Do NOT transliterate. Do NOT keep any part of the original spelling.
-- Each character in this chunk must get a UNIQUE full name.
-- If the same person appears twice **in this chunk**, reuse the exact same localized name.
+1. Replace personal full names with culturally appropriate full names in {lang}.
+2. Each character must receive a UNIQUE full name if present in this chunk.
+3. DO NOT keep original spelling. DO NOT transliterate.
+4. Reuse the same localized name if the same person appears more than once in this chunk.
+5. Adapt places, companies, products, job titles, dates, and currencies.
+6. Preserve tone, intent, and marketing style.
 
-Examples (Hungarian → German):
-"Hegedűs Anna"          → "Anna Müller"
-"Lopes-Szabó Zsuzsa"    → "Susanne Berger"
-"Szabó György"          → "Jürgen Schneider"
+Only translate the values. Do not change the structure or keys.
 
-## Other localisation rules
-- Adapt places, companies, products, job titles
-- Convert currencies, dates, phone numbers
-- Preserve tone and marketing intent
-
-## Never do
-- Modify keys or JSON structure
-- Add comments, explanations, markdown, or code blocks
-
-Return valid JSON only.
+JSON to translate:
+{json_str}
 """,
     }
 
-    user_msg = {"role": "user", "content": json_str}
-
     resp = await client.chat.completions.create(
         model=MODEL,
-        messages=[system_msg, user_guide, user_msg],
+        messages=[system_prompt, user_prompt],
         response_format={"type": "json_object"},
         temperature=0.3,
         max_tokens=4000,
     )
+
     return json.loads(resp.choices[0].message.content)
 
 
 async def translate_elements(element_map: dict[str, str], lang: str) -> dict[str, str]:
+    """Chunk long inputs by value token count and merge translations."""
     chunks = []
     current_chunk = OrderedDict()
     current_tokens = 0
@@ -79,20 +79,8 @@ async def translate_elements(element_map: dict[str, str], lang: str) -> dict[str
         chunks.append(current_chunk)
 
     translated = OrderedDict()
-    for i, chunk in enumerate(chunks, start=1):
+    for chunk in chunks:
         result = await translate_chunk(chunk, lang)
         translated.update(result)
-
-    missing = set(element_map) - set(translated)
-    attempt = 1
-    while missing:
-        retry_chunk = OrderedDict((k, element_map[k]) for k in missing)
-        try:
-            retry_result = await translate_chunk(retry_chunk, lang)
-            translated.update(retry_result)
-        except Exception as e:
-            raise RuntimeError(f"Retry failed: {e}")
-        missing = set(element_map) - set(translated)
-        attempt += 1
 
     return translated
