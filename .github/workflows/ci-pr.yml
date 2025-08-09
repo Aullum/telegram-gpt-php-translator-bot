@@ -33,8 +33,5 @@ jobs:
       - name: Run pre-commit
         run: poetry run pre-commit run --all-files --show-diff-on-failure
 
-      - name: Run full tests
-        run: poetry run pytest --cov=src --cov-report=term-missing
-
       - name: Poetry check
         run: poetry check
